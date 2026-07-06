@@ -1,0 +1,32 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+
+# --- Environment / secrets ---
+.env
+*.env
+
+# --- Model weights & caches (multi-GB, not for git) ---
+streaming-asr-emotion/models/
+**/torch_cache/
+**/.cache/
+
+# --- Logs ---
+*.log
+
+# --- Test / QA artifacts ---
+_page_dump.html
+test_ui_qa_output.txt
+test_ui_qa*.png
+*.png
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db

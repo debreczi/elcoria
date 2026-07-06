@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elcoria - Healthcare Conversation Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: #ff5252;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 1px;
+            background: #f0f0f0;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .transcript-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .transcript-partial {
+            color: #888;
+            font-style: italic;
+        }
+
+        .transcript-final {
+            color: #333;
+        }
+
+        .mood-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .mood-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .emotion-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .emotion-name {
+            width: 80px;
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .emotion-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .emotion-bar-fg {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        .emotion-score {
+            width: 40px;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .question-card {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f0f7ff;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .question-title {
+            font-size: 12px;
+            color: #1976d2;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .question-text {
+            color: #333;
+            line-height: 1.6;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .question-text.streaming::after {
+            content: '▌';
+            animation: blink 0.8s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .question-card.complete {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #c62828;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            padding: 10px 20px;
+            background: #ff9800;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        .scrollable {
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Elcoria Healthcare Conversation Analysis</h1>
+            <div class="controls">
+                <button id="micBtn" class="btn btn-primary">🎤 Start Recording</button>
+                <label class="file-input-label">
+                    📁 Upload Audio File
+                    <input type="file" id="fileInput" accept="audio/*">
+                </label>
+                <select id="configSelect"></select>
+                <div class="status">
+                    <div class="status-indicator disconnected" id="statusIndicator"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="panel">
+                <div class="panel-header">📝 Transcript + Patient Mood</div>
+                <div class="panel-body scrollable" id="transcriptPanel">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎙️</div>
+                        <div>Start recording or upload an audio file to begin</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">❓ Doctor's Clarification Questions</div>
+                <div class="panel-body scrollable" id="questionsPanel">
+                    <div class="empty-state">
+                        <div class="empty-icon">💡</div>
+                        <div>Questions will appear here as the patient speaks</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Audio Capture Module =====
+        const AudioCapture = {
+            mediaRecorder: null,
+            stream: null,
+            isRecording: false,
+
+            async startMic() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                        },
+                    });
+
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    this.audioContext = new AC({ sampleRate: 16000 });
+                    const source = this.audioContext.createMediaStreamSource(this.stream);
+                    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    const ctxRate = this.audioContext.sampleRate;
+
+                    this.processor.onaudioprocess = (e) => {
+                        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                        const pcm = e.inputBuffer.getChannelData(0);
+                        let out = pcm;
+                        if (ctxRate !== 16000) {
+                            const ratio = ctxRate / 16000;
+                            const outLen = Math.floor(pcm.length / ratio);
+                            out = new Float32Array(outLen);
+                            for (let i = 0; i < outLen; i++) {
+                                const srcIdx = i * ratio;
+                                const i0 = Math.floor(srcIdx);
+                                const frac = srcIdx - i0;
+                                out[i] = pcm[i0] * (1 - frac) + (pcm[i0 + 1] || 0) * frac;
+                            }
+                        }
+                        ws.send(new Float32Array(out).buffer);
+                    };
+
+                    source.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
+                    this.isRecording = true;
+                    return true;
+                } catch (error) {
+                    console.warn('Microphone unavailable:', error.message);
+                    showError('Failed to access microphone: ' + error.message);
+                    return false;
+                }
+            },
+
+            stopMic() {
+                if (!this.isRecording) return;
+                try { this.processor?.disconnect(); } catch (_) {}
+                this.processor = null;
+                try { this.audioContext?.close(); } catch (_) {}
+                this.audioContext = null;
+                this.stream?.getTracks().forEach(track => track.stop());
+                this.stream = null;
+                this.isRecording = false;
+            },
+
+            uploadFile(file) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const audioBytes = e.target.result;
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(new Blob([audioBytes], { type: 'application/octet-stream' }));
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            },
+        };
+
+        // ===== WebSocket Client =====
+        let ws = null;
+        const sessionId = 'session-' + Math.random().toString(36).substr(2, 9);
+
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/${sessionId}`;
+
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                sessionReady = false;
+                setStatus('Loading model…', true);
+                setMicEnabled(false, '⏳ Loading model…');
+
+                const configSelect = document.getElementById('configSelect');
+                const configName = configSelect.value;
+
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    event: 'start_session',
+                    config_name: configName,
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleServerMessage(message);
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                setStatus('Error', false);
+                showError('WebSocket connection error');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                setStatus('Disconnected', false);
+                AudioCapture.stopMic();
+            };
+        }
+
+        let sessionReady = false;
+
+        function setMicEnabled(enabled, label) {
+            const btn = document.getElementById('micBtn');
+            btn.disabled = !enabled;
+            if (label) btn.textContent = label;
+        }
+
+        function handleServerMessage(message) {
+            switch (message.type) {
+                case 'session_ready':
+                    sessionReady = true;
+                    setStatus('Ready', true);
+                    setMicEnabled(true, '🎤 Start Recording');
+                    break;
+
+                case 'partial_transcript':
+                    updateTranscript(message.text, false);
+                    break;
+
+                case 'final_transcript':
+                    updateTranscript(message.text, true, message.utterance_id);
+                    break;
+
+                case 'emotion_update':
+                    updateMood(message.label, message.scores);
+                    break;
+
+                case 'question_chunk':
+                    addQuestionChunk(message.utterance_id, message.delta);
+                    break;
+
+                case 'question_final':
+                    finalizeQuestion(message.utterance_id);
+                    break;
+
+                case 'error':
+                    showError(`Error: ${message.code} - ${message.message}`);
+                    break;
+            }
+        }
+
+        // ===== UI Updates =====
+        let currentPartialId = null;
+        let currentQuestionElements = {};
+
+        function updateTranscript(text, isFinal, utteranceId = null) {
+            const transcriptPanel = document.getElementById('transcriptPanel');
+
+            if (transcriptPanel.querySelector('.empty-state')) {
+                transcriptPanel.innerHTML = '';
+            }
+
+            if (isFinal) {
+                if (currentPartialId) {
+                    const partial = document.getElementById(currentPartialId);
+                    if (partial) {
+                        partial.textContent = text;
+                        partial.classList.remove('transcript-partial');
+                        partial.classList.add('transcript-final');
+                    }
+                }
+                currentPartialId = null;
+            } else {
+                if (!currentPartialId) {
+                    const item = document.createElement('div');
+                    item.className = 'transcript-item transcript-partial';
+                    currentPartialId = 'partial-' + Date.now();
+                    item.id = currentPartialId;
+                    item.textContent = text;
+                    transcriptPanel.appendChild(item);
+                } else {
+                    const partial = document.getElementById(currentPartialId);
+                    if (partial) {
+                        partial.textContent = text;
+                    }
+                }
+            }
+
+            transcriptPanel.scrollTop = transcriptPanel.scrollHeight;
+        }
+
+        function updateMood(label, scores) {
+            let moodSection = document.getElementById('moodSection');
+
+            if (!moodSection) {
+                moodSection = document.createElement('div');
+                moodSection.id = 'moodSection';
+                moodSection.className = 'mood-section';
+                document.getElementById('transcriptPanel').appendChild(moodSection);
+            }
+
+            const top3 = Object.entries(scores)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            let html = `<div class="mood-label">😊 Páciens hangulata: ${label}</div>`;
+            top3.forEach(([emotion, score]) => {
+                const percentage = (score * 100).toFixed(0);
+                html += `
+                    <div class="emotion-bar">
+                        <div class="emotion-name">${emotion}</div>
+                        <div class="emotion-bar-bg">
+                            <div class="emotion-bar-fg" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="emotion-score">${percentage}%</div>
+                    </div>
+                `;
+            });
+
+            moodSection.innerHTML = html;
+        }
+
+        function addQuestionChunk(utteranceId, delta) {
+            const questionsPanel = document.getElementById('questionsPanel');
+
+            if (questionsPanel.querySelector('.empty-state')) {
+                questionsPanel.innerHTML = '';
+            }
+
+            let questionElement = currentQuestionElements[utteranceId];
+            if (!questionElement) {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = 'question-' + utteranceId;
+
+                const title = document.createElement('div');
+                title.className = 'question-title';
+                title.textContent = utteranceId;
+
+                const text = document.createElement('div');
+                text.className = 'question-text streaming';
+                text.id = 'question-text-' + utteranceId;
+
+                card.appendChild(title);
+                card.appendChild(text);
+                questionsPanel.appendChild(card);
+
+                currentQuestionElements[utteranceId] = text;
+                questionElement = text;
+            }
+
+            questionElement.textContent += delta;
+            questionsPanel.scrollTop = questionsPanel.scrollHeight;
+        }
+
+        function finalizeQuestion(utteranceId) {
+            const card = document.getElementById('question-' + utteranceId);
+            if (card) {
+                card.classList.add('complete');
+            }
+
+            const text = document.getElementById('question-text-' + utteranceId);
+            if (text) {
+                text.classList.remove('streaming');
+            }
+        }
+
+        function showError(message) {
+            const transcriptPanel = document.getElementById('transcriptPanel');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            transcriptPanel.insertBefore(errorDiv, transcriptPanel.firstChild);
+        }
+
+        function setStatus(text, connected) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusIndicator').classList.toggle('disconnected', !connected);
+        }
+
+        // ===== Event Listeners =====
+        document.getElementById('micBtn').addEventListener('click', async function () {
+            if (!sessionReady) {
+                showError('Model is still loading — wait for "Ready" before recording.');
+                return;
+            }
+            if (!AudioCapture.isRecording) {
+                if (await AudioCapture.startMic()) {
+                    this.textContent = '⏹️ Stop Recording';
+                    this.classList.add('btn-danger');
+                    this.classList.remove('btn-primary');
+                }
+            } else {
+                AudioCapture.stopMic();
+                this.textContent = '🎤 Start Recording';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-primary');
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            if (e.target.files.length > 0) {
+                AudioCapture.uploadFile(e.target.files[0]);
+                e.target.value = ''; // Reset
+            }
+        });
+
+        document.getElementById('configSelect').addEventListener('change', function () {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+                setTimeout(initWebSocket, 500);
+            }
+        });
+
+        // ===== Initialization =====
+        window.addEventListener('load', () => {
+            loadConfigs().then(() => initWebSocket());
+        });
+
+        async function loadConfigs() {
+            const select = document.getElementById('configSelect');
+            const labels = {
+                lightweight: '🎯 large-v3-hu (best WER)',
+                turbo: '⚡ large-v3-hu turbo (faster)',
+                gpu: '🚀 GPU (Faster)',
+            };
+            try {
+                const response = await fetch('/configs');
+                const data = await response.json();
+                const configs = data.configs || [];
+                select.innerHTML = '';
+                if (configs.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'No configs available — run download_models.py';
+                    opt.disabled = true;
+                    select.appendChild(opt);
+                    return;
+                }
+                for (const name of configs) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = labels[name] || name;
+                    select.appendChild(opt);
+                }
+                console.log('Available configs:', configs);
+            } catch (e) {
+                console.warn('Could not load configs from server:', e);
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    event: 'end_session',
+                }));
+                ws.close();
+            }
+            AudioCapture.stopMic();
+        });
+    </script>
+</body>
+</html>

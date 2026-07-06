@@ -1,0 +1,37 @@
+name: turbo
+description: "Sarpba whisper-hu-large-v3-turbo fine-tune. Faster decoder, alternative Hungarian decoding behavior."
+
+models_dir: "./models"
+
+vad:
+  implementation: EnergyVAD
+  params:
+    threshold_db: -40
+    min_silence_ms: 600
+    frame_ms: 30
+
+asr:
+  implementation: HuggingFaceWhisperASR
+  params:
+    model_path: "whisper-large-v3-hu-turbo"
+    device: cuda
+    language: hu
+    batch_size: 1
+
+emotion:
+  implementation: AcousticBiomarkersEmotion
+  params: {}
+
+fusion:
+  implementation: OllamaFusion
+  params:
+    model: "llama3.2:3b"
+    ollama_url: "http://localhost:11434"
+    temperature: 0.2
+    max_tokens: 256
+    system_prompt_file: "./streaming-asr-emotion/prompts/doctor_questions_hu.txt"
+
+streaming:
+  chunk_ms: 100
+  vad_buffer_ms: 3000
+  emotion_interval_ms: 2000
